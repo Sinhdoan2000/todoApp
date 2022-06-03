@@ -48,14 +48,15 @@ function App() {
   const [isSearch, setSearch] = useState(false);
   const [addValue, setAddValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
-  const [isRender, setIsRender] = useState(false);
+  const [isChecked, setIsChecked] = useState(false);
 
+  //Trả về dữ liệu gốc.
   const currentData = ()=>{
     const getJsons = window.localStorage.getItem('jobs');
     const dataJSON = JSON.parse(getJsons); 
     setDataJob(dataJSON);
   }
- //done
+ //Xử lý thêm data.
   const handleAdd = (e)=>{
       const isExist = dataJobs.filter(item=>{
         return addValue == item.name;
@@ -64,18 +65,19 @@ function App() {
         let id = dataJobs.length > 0 ? dataJobs[dataJobs.length - 1].id + 1 : 0;
         const newJob = {
           id,
-          name: addValue
+          checked: false,
+          name: addValue          
         }
         dataJobs.push(newJob);
         setAddValue("");
         window.localStorage.setItem('jobs', JSON.stringify(dataJobs));
         currentData();
-        setIsRender(!isRender);
       }
   }
- //done
+ //Xử lý tìm kiếm data.
   const handleSearch = (e) =>{
       setSearchValue(e.target.value);
+      setTabs(filters[0].name);
       const getJsons = window.localStorage.getItem('jobs');
       const dataJSON = JSON.parse(getJsons); 
       const resultFilter = dataJSON.filter(item=>{
@@ -89,42 +91,72 @@ function App() {
         setDataJob([]);
       }
   }
+ 
+  //Xử lý lọc data khi change tabs.
+  useEffect(()=> {
+    const getJsons = window.localStorage.getItem('jobs');
+    const dataJSON = JSON.parse(getJsons); 
+    if(tabs === "All"){
+      currentData();
+    }else if(tabs == "Active"){
+      const dataActive = dataJSON.filter(item => {
+        return item.checked === false;
+      })
+      setDataJob(dataActive);
+    }else{
+      const dataCompleted = dataJSON.filter(item => {
+        return item.checked === true;
+      })
+      console.log('data completed', dataCompleted);
+      setDataJob(dataCompleted);
+    }
+  }, [tabs])
 
-  const handleFilterTabs = (name, id)=>{
-      setTabs(name);  
-      if(name == "All"){
-        currentData();
-        const CheckedElement = document.querySelectorAll('.Globo-checkboxJob');
-        CheckedElement.forEach(item=>{
-              item.closest('.Globo-job_item').style.display = "flex";
-        })
-      }else if(name == "Active"){
-        const notCheckedElement = document.querySelectorAll('.Globo-checkboxJob');
-        notCheckedElement.forEach(item=>{
-          if (item.checked) {
-            item.closest('.Globo-job_item').style.display = "none";
-           }else{
-            item.closest('.Globo-job_item').style.display = "flex";
-          }
-        })
+  //khi tabs đang ở Active or completed: nếu checkbox thay đổi sẽ lọc lại data.
+  useEffect(() => {
+    const getJsons = window.localStorage.getItem('jobs');
+    const dataJSON = JSON.parse(getJsons); 
+    if(tabs == 'Active'){
+      const dataActive = dataJSON.filter(item => {
+        return item.checked === false;
+      })
+      setDataJob(dataActive);
+    }else if(tabs == "Completed"){
+      const dataCompleted = dataJSON.filter(item => {
+        return item.checked === true;
+      })
+      setDataJob(dataCompleted);
+    }
+  }, [isChecked])
 
-      }else{
-        const notCheckedElement = document.querySelectorAll('.Globo-checkboxJob');
-        notCheckedElement.forEach(item=>{
-          if (!item.checked) {
-            item.closest('.Globo-job_item').style.display = "none";
-          }else{
-            item.closest('.Globo-job_item').style.display = "flex";
-          }
-        })
-      }
-  }
+  //Xử lý khi change checkbox thì cập nhập data.
   const handleIsChecked = (e, job) =>{   
       e.target.checked ? job.checked = true : job.checked = false;   
-      setDataJob(dataJobs);
-      setIsRender(!isRender);
-      window.localStorage.setItem('jobs', JSON.stringify(dataJobs));
+      const getJsons = window.localStorage.getItem('jobs');
+      const dataJSON = JSON.parse(getJsons);
+      dataJSON.forEach(item=>{
+        if(item.id == job.id){
+          e.target.checked ? item.checked = true : item.checked = false;
+        }
+      })
+      window.localStorage.setItem('jobs', JSON.stringify(dataJSON));
   }
+  
+  //Bật input add
+  const handleRenderAll = ()=>{
+    setSearch(false);
+    setTabs(filters[0].name);
+    currentData();
+  }
+  //Bật input search 
+ const handleOpenSearch  = () =>{
+    setSearch(true);
+    setTabs(filters[0].name);
+ }
+  //re-render lại data mỗi khi data thay đổi
+  useEffect(()=>{
+    setDataJob(dataJobs)
+  }, [dataJobs.length])
 
   return (
           <div className="App">
@@ -154,9 +186,9 @@ function App() {
                           <input type="checkbox" 
                             id={"Globo-checkbox-" + job.id}
                             className="Globo-checkboxJob" 
-                            defaultChecked={job.checked}
-                            value={job.name}
-                            onClick={e => handleIsChecked(e, job)}
+                            checked={job.checked}
+                            onChange={e => handleIsChecked(e, job)}
+                            onClick={() => setIsChecked(!isChecked)}
                           />
                           <label htmlFor={"Globo-checkbox-" + job.id} className="Globo-job_name">{job.name}</label>
                         </li>
@@ -166,10 +198,10 @@ function App() {
               </div>
               <footer style={{display: "flex"}}>
                 <div className="Globo-handle" style={{display: "flex"}}>
-                  <button id="Globo-button-add" onClick={()=> setSearch(isSearch => !isSearch)}>
+                  <button id="Globo-button-add" onClick={handleRenderAll}>
                     <i className="fa-solid fa-plus"></i>
                   </button>
-                  <button id="Globo-button-search" style={{color: "#777"}} onClick={()=> setSearch(isSearch => !isSearch)}>
+                  <button id="Globo-button-search" style={{color: "#777"}} onClick={()=> handleOpenSearch()}>
                     <i className="fa-solid fa-magnifying-glass"></i>
                   </button>
                   <span className="Globo-countJob">{dataJobs.length > 1 ? dataJobs.length + " items left" : dataJobs.length + " item left"}</span>
@@ -178,10 +210,10 @@ function App() {
                     {filters.map((filter, index)=>{
                       return (
                         <button 
-                        key={index}
-                        className='Globo-filters_button' 
-                        style={tabs == filter.name ? {border: "1px solid rgba(175, 47, 47, 0.2)"} : {}}
-                        onClick={()=> handleFilterTabs(filter.name, filter.id)}
+                          key={index}
+                          className={tabs == filter.name ? 'Globo-filters_button selected-'+ filter.name : 'Globo-filters_button filter.name'}
+                          style={tabs == filter.name ? {border: "1px solid rgba(175, 47, 47, 0.2)"} : {}}
+                          onClick={()=> setTabs(filter.name)}
                         >
                           {filter.name}
                         </button>
