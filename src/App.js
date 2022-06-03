@@ -40,15 +40,13 @@ function App() {
     return dataJSON ? dataJSON : [];
   });
 
-  useEffect(()=>{
-    setDataJob(dataJobs);
-  }, [dataJobs.length])
 
   const [tabs, setTabs] = useState('All');
   const [isSearch, setSearch] = useState(false);
   const [addValue, setAddValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [isChecked, setIsChecked] = useState(false);
+
 
   //Trả về dữ liệu gốc.
   const currentData = ()=>{
@@ -153,6 +151,11 @@ function App() {
     setSearch(true);
     setTabs(filters[0].name);
  }
+ const handleAddChange = (e) => {
+  setAddValue(e.target.value);
+  setTabs(filters[0].name);
+  currentData();
+ }
   //re-render lại data mỗi khi data thay đổi
   useEffect(()=>{
     setDataJob(dataJobs)
@@ -168,7 +171,7 @@ function App() {
                         id="Globo-input_add"
                         placeholder='Add New' 
                         value={addValue} 
-                        onChange={e => setAddValue(e.target.value)}
+                        onChange={e => handleAddChange(e)}
                         onKeyPress={e => handleAdd(e)}
                     />}
                     {isSearch && <input type="text" 
