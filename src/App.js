@@ -34,42 +34,30 @@ function App() {
       }
   ];
   const [dataRender, setDataRender] = useState(jobs);
-  const [dataAll, setDataAll] = useState(dataRender);
-  const [dataActive, setDataActive] = useState(() => {
-    const actives = dataRender.filter(function(active){
-      return !active.checked
-    })
-    return actives ? actives : [];
-  });
-  const [dataCompleted, setDataCompleted] = useState(() => {
-    const completed = dataRender.filter(function (item){
-      return item.checked;
-    })
-    return completed ? completed : [];
-  });
+  const [rootData, setRootData] = useState(dataRender);
   const [tabs, setTabs] = useState('All');
   const [isSearch, setSearch] = useState(false);
   const [addValue, setAddValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [isChecked, setIsChecked] = useState(false);
-
+  const [isShowing, setIsShowing] = useState(true);
 
  //Xử lý thêm data.
   const handleAdd = (e)=>{
-      const isExist = dataAll.filter(item=>{
+      console.log(e.keyCode)
+      const isExist = rootData.filter(item=>{
         return addValue.toLocaleLowerCase() == item.name.toLocaleLowerCase();
       })
-      console.log(e.keyCode)
       if(isExist.length <= 0 && addValue && e.keyCode == 13){
-        let id = dataAll.length > 0 ? dataAll[dataAll.length - 1].id + 1 : 0;
+        let id = rootData.length > 0 ? rootData[rootData.length - 1].id + 1 : 0;
         const newJob = {
           id,
           checked: false,
           name: addValue          
         }
-        dataAll.push(newJob);
-        setDataAll(dataAll);
-        setDataRender(dataAll);
+        rootData.push(newJob);
+        setRootData(rootData);
+        setDataRender(rootData);
         setAddValue("");
       }
   }
@@ -78,13 +66,13 @@ function App() {
   const handleSearch = (e) =>{
       setSearchValue(e.target.value);
       setTabs(filters[0].name);
-      const resultFilter = dataAll.filter(item=>{
+      const resultFilter = rootData.filter(item=>{
         return item.name.toLowerCase().search(e.target.value.toLowerCase()) != -1; 
       }) 
       if(resultFilter && searchValue){
         setDataRender(resultFilter);
       }else if(searchValue.length == 0){
-        setDataRender(dataAll);
+        setDataRender(rootData);
       }else{
         setDataRender([]);
       }
@@ -93,76 +81,86 @@ function App() {
   //Xử lý lọc data khi change tabs.
   useEffect(()=> {
     if(tabs === "All"){
-      setDataRender(dataAll);
+      setDataRender(rootData);
     }else if(tabs == "Active"){
-      const dataActives = dataAll.filter(item => {
+      const dataActives = rootData.filter(item => {
         return item.checked === false;
       })
       setDataRender(dataActives);
     }else{
-      const dataCompletedFilter = dataAll.filter(item => {
+      const dataCompleted = rootData.filter(item => {
         return item.checked === true;
       })
-      setDataRender(dataCompletedFilter);
+      setDataRender(dataCompleted);
     }
   }, [tabs])
 
   //khi tabs đang ở Active or completed: nếu checkbox thay đổi sẽ lọc lại data.
   useEffect(() => {
     if(tabs == 'Active'){
-      const dataActives = dataAll.filter(item => {
+      const dataActives = rootData.filter(item => {
         return item.checked === false;
       })
-      setDataActive(dataActives);
       setDataRender(dataActives);
     }else if(tabs == "Completed"){
-      const dataCompletedFilter = dataAll.filter(item => {
+      const dataCompleted = rootData.filter(item => {
         return item.checked === true;
       })
-      setDataCompleted(dataCompletedFilter);
-      setDataRender(dataCompletedFilter);
+      setDataRender(dataCompleted);
     }
   }, [isChecked])
 
   //Xử lý khi change checkbox thì cập nhập data.
   const handleIsChecked = (e, job) =>{   
       e.target.checked ? job.checked = true : job.checked = false;   
-      const getJsons = window.localStorage.getItem('jobs');
-      const dataJSON = JSON.parse(getJsons);
-      dataJSON.forEach(item=>{
+      rootData.forEach(item=>{
         if(item.id == job.id){
           e.target.checked ? item.checked = true : item.checked = false;
         }
       })
-      window.localStorage.setItem('jobs', JSON.stringify(dataJSON));
+      setRootData(rootData)
   }
   
   //Bật input add
   const handleRenderAll = ()=>{
     setSearch(false);
     setAddValue("");
-    setDataRender(dataAll);
+    setDataRender(rootData);
     setTabs(filters[0].name);
   }
   //Bật input search 
  const handleOpenSearch  = () =>{
     setSearch(true);
     setSearchValue("");
-    setDataRender(dataAll);
+    setDataRender(rootData);
     setTabs(filters[0].name);
  }
  const handleAddChange = (e) => {
     setAddValue(e.target.value);
-    setDataRender(dataAll);
+    setDataRender(rootData);
     setTabs(filters[0].name);
  }
+useEffect(()=>{
+  document.onkeyup = function (event) {
+
+    if (event.keyCode == 27) {
+      setIsShowing(false);
+    }else if(event.keyCode == 191){
+      setSearch(true);
+      setIsShowing(true);
+    }else{
+      setSearch(false);
+      setIsShowing(true);
+    }
+  };
+})
 
   return (
           <div className="App">
             <div className="Globo-app">
               <header>
                   <h1 className="Globo-title">Things To Do</h1>
-                  <div className="Globo-input">
+                  <div className="Globo-input" style={ isShowing ? {} : {display: "none"}}>
                     {!isSearch && <input type="text" 
                         id="Globo-input_add"
                         placeholder='Add New' 
@@ -221,7 +219,9 @@ function App() {
                 </div>
               </footer>
             </div>
-              <p className="message-notify">Press `Esc` to cancel.</p>
+              <p className="message-notify">
+                {isShowing ? 'Press `Esc` to cancel.' : 'Press `/` to search and `N` to create a new item.'}
+                </p>
           </div>
   );
 }
